@@ -1,0 +1,118 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Stack for engineeringagility.com system",
+  "Resources": {
+    "DeploymentRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "engineering-agility-deployer",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": ["codebuild.amazonaws.com"]
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "s3-access",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "S3BucketDiscovery",
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:ListBucket",
+                    "s3:GetBucketLocation"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::engineeringagility.com"
+                  ]
+                },
+                {
+                  "Sid": "FullAccessToS3Objects",
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:*Object"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::engineeringagility.com/*"
+                  ]
+                },
+                {
+                  "Sid": "Log",
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents",
+                    "logs:CreateLogGroup"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "DeploymentUser": {
+      "Type": "AWS::IAM::User",
+      "Properties": {
+        "UserName": "engineering-agility-deployer",
+        "Policies": [
+          {
+            "PolicyName": "s3-access",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:ListBucket",
+                    "s3:GetBucketLocation"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::engineeringagility.com"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:*Object"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::engineeringagility.com/*"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "BuildProject": {
+      "Type": "AWS::CodeBuild::Project",
+      "Properties": {
+        "Artifacts": {
+          "Location": "NO_ARTIFACTS"
+        },
+        "Environment": {
+          "ComputeType": "BUILD_GENERAL1_SMALL",
+          "Image": "aws/codebuild/standard:4.0",
+          "Type": "ARM_CONTAINER"
+        },
+        "Source": {
+          "Type": "GITHUB",
+          "Location": "https://github.com/efleming969/engineeringagility.git"
+        },
+        "ServiceRole": {"Fn::GetAtt": ["DeploymentRole", "Arn"]}
+      }
+    }
+  }
+}
